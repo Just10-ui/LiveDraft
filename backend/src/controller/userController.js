@@ -32,3 +32,25 @@ export const userLogin = async (req, res) => {
     res.status(500).json({message: 'Server is not responding!!'});
   }
 };
+
+export const changePassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const hashPassword = await bcrypt.hash(newPassword, 10);
+  const userId = req.params.userId;
+
+  try {
+    const password = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    const user = password.rows[0];
+    const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
+
+    if (isMatch) {
+      const result = await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING *;', [hashPassword, userId]);
+      res.status(200).json({message: 'Updated successfully', password: result.rows[0]});
+    } else {
+      res.status(400).json({message: 'Invalid credentials'});
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({message: 'Server is not responding!!'});
+  }
+};
