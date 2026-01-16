@@ -9,7 +9,7 @@ before implementing business logic and real-time features.
 The project was initialized using npm:
 npm init -y
 npm i nodemon --save-dev
-npm i express pg cors dotenv
+npm i express pg cors dotenv bcrypt
 
 ## Folder Structure
 backend/
