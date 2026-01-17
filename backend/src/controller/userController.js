@@ -54,3 +54,16 @@ export const changePassword = async (req, res) => {
     res.status(500).json({message: 'Server is not responding!!'});
   }
 };
+
+export const deleteAccount = async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *;', [userId]);
+
+    res.status(200).json({message: 'Account deleted successfully', account: result.rows[0]});
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({message: 'Server is not responding!!'});
+  }
+};
