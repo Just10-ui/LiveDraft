@@ -29,3 +29,9 @@ backend/
 |-- README.md
 |-- package.json
 |-- package-lock.json
+
+## HTTP endpoints
+http://localhost:8080/api/users/signup              # Signup endpoint for signup logic
+http://localhost:8080/api/users/login               # Login endpoint for login logic
+http://localhost:8080/api/users/update/:userId      # Change password endpoint
+http://localhost:8080/api/users/delete/:userId      # Delete account endpoint
