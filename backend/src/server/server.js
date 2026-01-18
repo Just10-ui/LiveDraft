@@ -10,6 +10,7 @@ const app = express();
 
 app.use(parseJson);
 app.use(crossOrig);
+app.use('/avatars', express.static('src/uploads/avatars'));
 app.use('/api', router);
 
 app.listen(port, () => {
