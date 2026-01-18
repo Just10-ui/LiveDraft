@@ -1,13 +1,29 @@
 import pool from '../database/db.js';
 import bcrypt from 'bcrypt';
+import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import { getRandomAvatar } from '../utils/getRandomAvatar.js';
+
+dotenv.config();
+
+const JWT = process.env.JWT_SECRET;
 
 export const userSignup = async (req, res) => {
   const { username, email, password} = req.body;
   const hashPassword = await bcrypt.hash(password, 10);
+  const avatar = getRandomAvatar();
 
   try {
-    const result = await pool.query('INSERT INTO users(username, email, password_hash) VALUES ($1, $2, $3) RETURNING *;', [username, email, hashPassword]);
-    res.status(201).json({message: 'User signed up', details: result.rows[0]});
+    const result = await pool.query('INSERT INTO users(username, email, password_hash, avatar) VALUES ($1, $2, $3, $4) RETURNING *;', [username, email, hashPassword, avatar]);
+    const user = result.rows[0];
+    const payload = {id: user.id, email: user.email};
+    const token = jwt.sign(payload, JWT, { expiresIn: '1h' });
+
+    res.status(200).json({
+      message: 'User signed up', 
+      token,
+      details: user
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({message: 'Server is not responding!!'});
