@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { changePassword, deleteAccount, userLogin, userSignup } from '../controller/userController.js';
+import { verifyToken } from '../middleware/middleware.js';
+import { login, signup, userProfile } from '../controller/userController.js';
 
 const userRoutes = Router();
 
-userRoutes.post('/signup', userSignup);
-userRoutes.post('/login', userLogin);
-userRoutes.put('/update/:userId', changePassword);
-userRoutes.delete('/delete/:userId', deleteAccount);
+userRoutes.post('/signup', signup);
+userRoutes.post('/login', login);
+userRoutes.get('/profile', verifyToken, userProfile);
 
 export default userRoutes;
