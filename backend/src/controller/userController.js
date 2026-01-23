@@ -1,85 +1,80 @@
 import pool from '../database/db.js';
 import bcrypt from 'bcrypt';
-import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
-import { getRandomAvatar } from '../utils/getRandomAvatar.js';
+import dotenv from 'dotenv';
+import { getRandomAvatar } from '../utils/utils.js';
 
 dotenv.config();
 
-const JWT = process.env.JWT_SECRET;
-
-export const userSignup = async (req, res) => {
-  const { username, email, password} = req.body;
-  const hashPassword = await bcrypt.hash(password, 10);
+export const signup = async (req, res) => {
+  const { username, email, password } = req.body;
   const avatar = getRandomAvatar();
 
   try {
-    const result = await pool.query('INSERT INTO users(username, email, password_hash, avatar) VALUES ($1, $2, $3, $4) RETURNING *;', [username, email, hashPassword, avatar]);
-    const user = result.rows[0];
-    const payload = {id: user.id, email: user.email};
-    const token = jwt.sign(payload, JWT, { expiresIn: '1h' });
+    const user = await pool.query('SELECT * FROM users WHERE email = $1;', [email]);
+    const existingUser = user.rows;
 
-    res.status(200).json({
-      message: 'User signed up', 
-      token,
-      details: user
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({message: 'Server is not responding!!'});
-  }
-};
+    if (existingUser.length > 0) {
 
-export const userLogin = async (req, res) => {
-  const {email, password} = req.body;
+      if (existingUser[0].username === username) {
+        return res.status(400).json({field: 'username', message: 'Username is already used'})
+      }
 
-  try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1;', [email]);
-    const user = result.rows[0];
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-
-    if (isMatch) {
-      res.status(200).json({message: 'Log in successfully'});
-    } else {
-      res.status(400).json({message: 'Incorrect password'});
+      if (existingUser[0].email === email) {
+        return res.status(400).json({field: 'email', message: 'Email is already used'})
+      }
     }
+
+    const hashPassword = await bcrypt.hash(password, 10);
+    const result = await pool.query('INSERT INTO users(username, email, password, profile) VALUES ($1, $2, $3, $4) RETURNING *;', [username, email, hashPassword, avatar]);
+    const token = jwt.sign({ userId: result.rows[0].id }, 
+    process.env.JWT_SECRET, { expiresIn: '20h' });
+
+    res.status(201).json({message: 'Signup successfully', token, user: result.rows[0]});
   } catch (error) {
     console.log(error);
-    res.status(500).json({message: 'Server is not responding!!'});
+    res.status(500).json({message: 'Server error'});
   }
 };
 
-export const changePassword = async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
-  const hashPassword = await bcrypt.hash(newPassword, 10);
-  const userId = req.params.userId;
+export const login = async (req, res) => {
+  const { email, password } = req.body;
 
   try {
-    const password = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-    const user = password.rows[0];
-    const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
-
-    if (isMatch) {
-      const result = await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING *;', [hashPassword, userId]);
-      res.status(200).json({message: 'Updated successfully', password: result.rows[0]});
-    } else {
-      res.status(400).json({message: 'Invalid credentials'});
+    const user = await pool.query('SELECT * FROM users WHERE email = $1;', [email]);
+    const matchPassword = await bcrypt.compare(user.rows[0].password, password);
+    const matchEmail = user.rows[0].email;
+    
+    if (matchEmail !== email) {
+      return res.status(400).json({field: 'email', message: 'Email not found'});
     }
+
+    if (!matchPassword) {
+      return res.status(400).json({field: 'password', message: 'Password is incorrect'});
+    }
+
+    const token = jwt.sign(
+      { userId: user.rows[0].id },
+      process.env.JWT_SECRET,
+      { expiresIn: '20h' }
+    )
+
+    res.status(200).json({message: 'Login successfully', token, user: user.rows[0]});
   } catch (error) {
     console.log(error);
-    res.status(500).json({message: 'Server is not responding!!'});
+    res.status(500).json({message: 'Server error'});
   }
 };
 
-export const deleteAccount = async (req, res) => {
-  const userId = req.params.userId;
+export const userProfile = async (req, res) => {
+  const userId = req.user.userId;
 
   try {
-    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *;', [userId]);
+    const result = await pool.query('SELECT * FROM users WHERE id = $1;', [userId]);
 
-    res.status(200).json({message: 'Account deleted successfully', account: result.rows[0]});
+    res.status(200).json({message: 'Success', user: result.rows[0]});
   } catch (error) {
     console.log(error);
-    res.status(500).json({message: 'Server is not responding!!'});
+    res.status(500).json({message: 'Server error'});
   }
 };
