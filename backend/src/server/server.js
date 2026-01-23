@@ -11,7 +11,7 @@ const app = express();
 app.use(parseJson);
 app.use(crossOrig);
 app.use('/avatars', express.static('src/uploads/avatars'));
-app.use('/api', router);
+app.use('/', router);
 
 app.listen(port, () => {
   console.log(`Port running on http://localhost:${port}`);
