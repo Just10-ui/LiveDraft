@@ -42,7 +42,7 @@ export const login = async (req, res) => {
 
   try {
     const user = await pool.query('SELECT * FROM users WHERE email = $1;', [email]);
-    const matchPassword = await bcrypt.compare(user.rows[0].password, password);
+    const matchPassword = await bcrypt.compare(password, user.rows[0].password);
     const matchEmail = user.rows[0].email;
     
     if (matchEmail !== email) {
